@@ -1,0 +1,4 @@
+name: ThrowableMobs
+version: ${project.version}
+main: net.kunmc.lab.throwablemobs.ThrowableMobs
+api-version: 1.15
