@@ -16,7 +16,7 @@ public class Llama implements IThrowable {
                 Vector vec = entity1.getLocation().toVector().subtract(entity.getLocation().toVector());
                 Vector vec2 = vec.multiply(1/vec.length());
                 llamaSpit.setVelocity(vec2);
-                llamaSpit.setGravity(false);
+                //llamaSpit.setGravity(false);
                 llamaSpit.setShooter(entity);
             });
         });

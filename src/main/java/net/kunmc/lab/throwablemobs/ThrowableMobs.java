@@ -44,8 +44,9 @@ public final class ThrowableMobs extends JavaPlugin implements Listener {
         new Thread(getServer()).runTaskTimer(this, 1, 1);
         Init.initThrowable(throwables);
         config = new Config(this);
+        config.load();
         plugin = this;
-
+        server = getServer();
     }
 
     @Override
@@ -73,6 +74,8 @@ public final class ThrowableMobs extends JavaPlugin implements Listener {
         entity.setAI(false);
         //entity.setInvulnerable(true);
         //entity.setCollidable(false);
+        //entity.setMetadata(HORSEFLAG,new FixedMetadataValue(plugin,true));
+
         entity.setMetadata(THROWING,new FixedMetadataValue(this,true));
         entity.setMetadata(LIFTING,new FixedMetadataValue(this,true));
 
@@ -103,9 +106,11 @@ public final class ThrowableMobs extends JavaPlugin implements Listener {
         if(event.getAction() != Action.LEFT_CLICK_AIR && event.getAction() != Action.LEFT_CLICK_BLOCK) return;
         if(player.getMetadata(PLIFT).isEmpty())return;
         if(!player.getMetadata(PLIFT).get(0).asBoolean())return;
+
         getLiftingEntity(player).ifPresent(entity -> {
             entity.setVelocity(player.getLocation().getDirection().multiply(3).add(player.getVelocity()));
             entity.setAI(true);
+            if(entity.getMetadata(HORSEFLAG).size()!=0 && !entity.getMetadata(HORSEFLAG).get(0).asBoolean()) return;
             onLaunching(player,entity);
             player.setMetadata(PLIFT,new FixedMetadataValue(this,false));
             entity.setMetadata(LIFTING,new FixedMetadataValue(this,false));
