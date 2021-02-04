@@ -2,7 +2,6 @@ package net.kunmc.lab.throwablemobs;
 
 
 import org.bukkit.*;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,7 +13,6 @@ import org.bukkit.metadata.FixedMetadataValue;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.util.Vector;
 
 
 import java.util.*;
@@ -44,7 +42,6 @@ public final class ThrowableMobs extends JavaPlugin implements Listener {
         new Thread(getServer()).runTaskTimer(this, 1, 1);
         Init.initThrowable(throwables);
         config = new Config(this);
-        config.load();
         plugin = this;
         server = getServer();
     }
@@ -57,6 +54,7 @@ public final class ThrowableMobs extends JavaPlugin implements Listener {
     public void liftMob(PlayerInteractEntityEvent event){
         if(event.getPlayer().getInventory().getItemInMainHand().getType() != Material.AIR || event.getPlayer().getInventory().getItemInOffHand().getType() != Material.AIR) return;
         if(!(event.getRightClicked() instanceof LivingEntity)) return;
+        if(event.getRightClicked().getType() == EntityType.PLAYER && !config.enableLiftingPlayer()) return;
         LivingEntity entity = (LivingEntity) event.getRightClicked();
         if(entity.getMetadata(PLIFT).size()!=0 && entity.getMetadata(PLIFT).get(0).asBoolean())return;
         if(entity.getMetadata(THROWING).size()!=0){
@@ -127,6 +125,10 @@ public final class ThrowableMobs extends JavaPlugin implements Listener {
     }
 
     public static Optional<LivingEntity> getLiftingEntity(Player player){
+        if(player.getMetadata(PLIFT).isEmpty()) return Optional.empty();
+        if(!player.getMetadata(PLIFT).get(0).asBoolean()) return Optional.empty();
+
+        if(player.getMetadata(LEID).isEmpty()) return Optional.empty();
         return Optional.ofNullable((LivingEntity) player.getWorld().getEntity(UUID.fromString(player.getMetadata(LEID).get(0).asString())));
     }
 
@@ -174,11 +176,18 @@ public final class ThrowableMobs extends JavaPlugin implements Listener {
         }
     }
 
+    public static boolean isOwner(LivingEntity player, LivingEntity entity){
+        if(!(player instanceof Player))return false;
+        Optional<LivingEntity> optional = getLiftingEntity((Player) player);
+        if(!optional.isPresent()) return false;
+        return optional.get()==entity;
+    }
+
     public static void onAir(LivingEntity entity){
         if (entity.getVelocity().length() >= speed) {
             double damage = getAttackDamage(entity);
-            entity.getWorld().getNearbyEntities(entity.getBoundingBox(), entity1 -> entity1 instanceof LivingEntity && entity1.getType() != EntityType.PLAYER && entity1 != entity).stream().map(entity1 -> (LivingEntity) entity1)
-                    .filter(entity1 -> entity1.getType() != EntityType.PLAYER)
+            entity.getWorld().getNearbyEntities(entity.getBoundingBox(), entity1 -> entity1 instanceof LivingEntity && entity1 != entity).stream().map(entity1 -> (LivingEntity) entity1)
+                    .filter(entity1 -> !isOwner(entity1,entity))
                     .forEach(entity1 -> {
                         entity.setMetadata(THROWING,new FixedMetadataValue(plugin,false));
                         //entity.setInvulnerable(false);
@@ -213,6 +222,14 @@ public final class ThrowableMobs extends JavaPlugin implements Listener {
                             onLifting(entity, player);
                             entity.setFallDistance(0);
                             entity.setMetadata(HORSEFLAG,new FixedMetadataValue(plugin,true));
+                            if(entity instanceof Player){
+                                Player lifted = (Player) entity;
+                                if(lifted.isSneaking()){
+                                    player.setMetadata(PLIFT,new FixedMetadataValue(plugin,false));
+                                    entity.setMetadata(LIFTING,new FixedMetadataValue(plugin,false));
+                                    entity.setMetadata(THROWING,new FixedMetadataValue(plugin,false));
+                                }
+                            }
                         }
                     });
 
