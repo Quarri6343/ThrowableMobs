@@ -1,12 +1,14 @@
 package net.kunmc.lab.throwablemobs;
 
 
+import com.destroystokyo.paper.Title;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.metadata.FixedMetadataValue;
@@ -24,6 +26,7 @@ public final class ThrowableMobs extends JavaPlugin implements Listener {
     public static final String NMS_VERSION = Bukkit.getServer().getClass().getPackage().getName().substring(23);
     public static final String THROWING = "ThrowableMobs:throwing";
     public static final String LIFTING = "ThrowableMobs:isLifting";
+    public static final String THROWER = "ThrowableMobs:thrower";
 
     public static final String PLIFT = "ThrowableMobs:isPlayerLifting";
     public static final String LEID = "ThrowableMobs:liftingEntityId";
@@ -76,6 +79,7 @@ public final class ThrowableMobs extends JavaPlugin implements Listener {
 
         entity.setMetadata(THROWING,new FixedMetadataValue(this,true));
         entity.setMetadata(LIFTING,new FixedMetadataValue(this,true));
+        entity.setMetadata(THROWER, new FixedMetadataValue(this, player.getName()));
 
         player.setMetadata(PLIFT,new FixedMetadataValue(this,true));
 
@@ -122,6 +126,44 @@ public final class ThrowableMobs extends JavaPlugin implements Listener {
 
             event.setCancelled(true);
         });
+    }
+
+    //究極のクソコード
+    @EventHandler
+    public void onEntityDeath(EntityDeathEvent event){
+        if(!(event.getEntity() instanceof Cow || event.getEntity() instanceof MushroomCow)){
+            return;
+        }
+
+        boolean isTroll = false;
+        for (int i = -3; i <= 3; i++) {
+            for (int j = -3; j <= 3; j++) {
+                for (int k = -3; k <= 3; k++) {
+                    int x = event.getEntity().getLocation().getBlock().getX() + i;
+                    int y = event.getEntity().getLocation().getBlock().getY() + j;
+                    int z = event.getEntity().getLocation().getBlock().getZ() + k;
+                    if(event.getEntity().getType() == EntityType.COW){
+                        if(event.getEntity().getWorld().getBlockAt(x, y, z).getType() == Material.RED_WOOL){
+                            isTroll = true;
+                        }
+                    }
+                    else{
+                        if(event.getEntity().getWorld().getBlockAt(x, y, z).getType() == Material.BLACK_WOOL){
+                            isTroll = true;
+                        }
+                    }
+
+                }
+            }
+        }
+        
+        if(!isTroll)
+            return;
+        
+        if(((Cow)event.getEntity()).getMetadata(THROWER).size() != 0){
+            String thrower = ((Cow)event.getEntity()).getMetadata(THROWER).get(0).asString();
+            Bukkit.getOnlinePlayers().forEach(player -> player.sendMessage(ChatColor.RED + thrower + "がトロールしました!"));
+        }
     }
 
     public static Optional<LivingEntity> getLiftingEntity(Player player){
